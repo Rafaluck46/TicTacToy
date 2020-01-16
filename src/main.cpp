@@ -59,7 +59,6 @@ private:
     {
         for (int i = 0; i < TickTac::__LEN; i++)
         {
-
             for (int j = 0; j < TickTac::__LEN; j++)
             {
                 if (j < TickTac::__LEN - 1)
@@ -85,7 +84,7 @@ private:
         std::cout << std::endl;
     }
 
-    void validateSecondaryDiagonal()
+    bool validateSecondaryDiagonal()
     {
         int j = __LEN - 1;
         int player = 0;
@@ -111,8 +110,43 @@ private:
 
         if (isSamePlayer == (__LEN))
             this->endGame = true;
+
+        return this->endGame;
     }
 
+    bool validateLines(int x, int y, DWORD player)
+    {
+        int qy = 0, fly = y, bly = y,
+            qx = 0, flx = x, blx = x;
+
+        while (fly > -1 || bly < __LEN)
+        {
+            if (fly == bly || this->scoreTable[fly][x] == player && fly > -1 || this->scoreTable[bly][x] == player && bly < __LEN)
+            {
+                qy++;
+            }
+
+            if (fly > -1)
+                fly--;
+            if (bly < __LEN)
+                bly++;
+        }
+
+        while (flx > -1 || blx < __LEN)
+        {
+            if (flx == blx || this->scoreTable[y][flx] == player && flx > -1 || this->scoreTable[y][blx] == player && blx < __LEN)
+            {
+                qx++;
+            }
+
+            if (flx > -1)
+                flx--;
+            if (blx < __LEN)
+                blx++;
+        }
+
+        return this->endGame = qy == __LEN || qx == __LEN;
+    }
 
 public:
     DWORD changeCurrentPlayer()
@@ -139,15 +173,17 @@ public:
         return this->currentPlayer;
     }
 
-    void setScore(int x, int y, DWORD player)
+    bool setScore(int x, int y, DWORD player)
     {
         this->scoreTable[y][x] = player;
-    }
-
-    bool validadeScore()
-    {
-        validateSecondaryDiagonal();
-       // validateLines();
+        if (validateLines(x, y, player))
+        {
+            return this->endGame;
+        }
+        else if (validateSecondaryDiagonal())
+        {
+            return this->endGame;
+        }
 
         return this->endGame;
     }
@@ -183,7 +219,6 @@ void setLogger(COORD *cursor, TickTac *reference)
     std::cout << "Log system: " << std::endl;
     std::cout << "POSITION: X : " << cursor->X / 2 << std::endl;
     std::cout << "POSITION: Y : " << cursor->Y / 2 << std::endl;
-    std::cout << "ENDGAME? : " << reference->validadeScore();
     std::cout << std::endl;
     std::cout << reference->__logScoreTable();
 
@@ -216,16 +251,15 @@ void GameControls(TickTac *game, COORD cursor_pos)
 
         if (keyPressed(VK_SPACE))
         {
-
             DWORD currentPlayer = game->getCurrentPlayer();
-
-            game->setScore(cursor->X / 2, cursor->Y / 2, currentPlayer);
 
             char characterPlayer;
             if (currentPlayer == game->PLAYER_X)
                 characterPlayer = 'X';
             else
                 characterPlayer = 'O';
+
+            bool endGame = game->setScore(cursor->X / 2, cursor->Y / 2, currentPlayer);
 
             if ((cursor->X / 2) < game->__LEN - 1)
             {
@@ -247,16 +281,16 @@ void GameControls(TickTac *game, COORD cursor_pos)
                 navigateCursor(cursor);
             }
 
-            game->changeCurrentPlayer();
             setLogger(cursor, game);
 
-            bool endGame = game->validadeScore();
             if (endGame)
             {
                 navigateCursor(new COORD{(SHORT)0, (SHORT)TickTac::__LEN * 2 + 15});
                 std::cout << "Final de Jogo! O vencedor foi: player " << characterPlayer << std::endl;
                 break;
             }
+
+            game->changeCurrentPlayer();
         }
     }
 }
@@ -279,4 +313,7 @@ main()
     std::thread controls(GameControls, game, coord);
 
     controls.join();
+
+    system("pause");
+
 }
